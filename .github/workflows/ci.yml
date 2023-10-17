@@ -1,0 +1,27 @@
+# checks out, installs node dependencies, runs typecheck, and runs lint
+name: CI
+
+env:
+  SKIP_ENV_VALIDATION: 1
+
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Typecheck
+      run: npm run typecheck
+
+    - name: Lint
+      run: npm run lint
+
