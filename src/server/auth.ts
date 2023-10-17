@@ -6,9 +6,12 @@ import {
   type NextAuthOptions,
 } from "next-auth";
 import EmailProvider from "next-auth/providers/email";
+import CredentialsProvider from "next-auth/providers/credentials";
 
 import { env } from "~/env.mjs";
 import { db } from "~/server/db";
+import { getChallenge } from "~/lib/webauthn";
+import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -37,17 +40,102 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authOptions: NextAuthOptions = {
-  callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
+  // callbacks: {
+  //   session: ({ session, user }) => ({
+  //     ...session,
+  //     user: {
+  //       ...session.user,
+  //       id: user.id,
+  //     },
+  //   }),
+  // },
+  adapter: PrismaAdapter(db),
+  secret: env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt",
+  },
+  providers: [
+    CredentialsProvider({
+      name: "webauthn",
+      credentials: {},
+      async authorize(_cred, req) {
+        if (!req.body) return null;
+        const {
+          id,
+          rawId,
+          type,
+          clientDataJSON,
+          authenticatorData,
+          signature,
+          userHandle,
+          clientExtensionResults,
+        } = req.body;
+
+        const response = {
+          id,
+          rawId,
+          type,
+          response: {
+            clientDataJSON,
+            authenticatorData,
+            signature,
+            userHandle,
+          },
+          clientExtensionResults,
+        };
+        // console.log("response", response);
+
+        const authenticator = await db.credential.findFirst({
+          where: {
+            credentialID: response.id,
+          },
+        });
+
+        if (!authenticator) {
+          console.log("authenticator not found");
+          return null;
+        }
+        const expectedChallenge = await getChallenge(authenticator.userId);
+        if (!expectedChallenge) {
+          return null;
+        }
+        if (!process.env.NEXTAUTH_URL) {
+          throw new Error("NEXTAUTH_URL must be set");
+        }
+        try {
+          const { verified, authenticationInfo } =
+            await verifyAuthenticationResponse({
+              response,
+              expectedChallenge,
+              expectedOrigin: process.env.NEXTAUTH_URL,
+              expectedRPID: process.env.NEXTAUTH_URL.replace("https://", ""),
+              authenticator: {
+                credentialPublicKey:
+                  authenticator.credentialPublicKey as Buffer,
+                counter: authenticator.counter,
+                credentialID: Buffer.from(
+                  authenticator.credentialID,
+                  "base64url",
+                ),
+              },
+            });
+          if (!verified || !authenticationInfo) {
+            console.log("failed to verify");
+            return null;
+          }
+
+          return await db.user.findFirst({
+            where: {
+              id: authenticator.userId,
+            },
+          });
+        } catch (err) {
+          console.log(err);
+          return null;
+        }
       },
     }),
-  },
-  adapter: PrismaAdapter(db),
-  providers: [
+
     EmailProvider({
       server: {
         host: env.EMAIL_SERVER_HOST,
@@ -59,15 +147,6 @@ export const authOptions: NextAuthOptions = {
       },
       from: env.EMAIL_FROM,
     }),
-    /**
-     * ...add more providers here.
-     *
-     * Most other providers require a bit more work than the Discord provider. For example, the
-     * GitHub provider requires you to add the `refresh_token_expires_in` field to the Account
-     * model. Refer to the NextAuth.js docs for the provider you want to use. Example:
-     *
-     * @see https://next-auth.js.org/providers/github
-     */
   ],
   pages: {
     signIn: "/auth/signin",

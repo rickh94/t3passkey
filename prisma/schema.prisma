@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client-js"
+    provider        = "prisma-client-js"
     previewFeatures = ["driverAdapters"]
 }
 
@@ -50,7 +50,7 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
-    credentials    Credential[]
+    credentials   Credential[]
 }
 
 model VerificationToken {
@@ -62,10 +62,11 @@ model VerificationToken {
 }
 
 model Credential {
-    id                 String @id @default(cuid())
-    credentialId       String
-    userId             String
-    user               User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-    credetialPublicKey Bytes
-    counter            Int
+    id                  String @id @default(cuid())
+    credentialID        String
+    userId              String
+    user                User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    credentialPublicKey Bytes
+    counter             Int
+    transports          String
 }

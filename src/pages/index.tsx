@@ -1,11 +1,56 @@
+import { startRegistration } from "@simplewebauthn/browser";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
 
 import { api } from "~/utils/api";
 
+function RegistrationComponent() {
+  const { data: webauthnData, isLoading: registrationOptionsLoading } =
+    api.webauthn.handlePreRegister.useQuery();
+  const {
+    mutate,
+    isLoading: registrationLoading,
+    isSuccess: registrationSuccess,
+    isError: registrationError,
+  } = api.webauthn.handleRegister.useMutation();
+
+  async function registerWebauthn() {
+    if (!webauthnData) return;
+    console.log(webauthnData);
+
+    try {
+      const registrationResponse = await startRegistration(webauthnData);
+      mutate(registrationResponse);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  return (
+    <>
+      <button onClick={registerWebauthn} disabled={registrationOptionsLoading}>
+        {registrationOptionsLoading || registrationLoading
+          ? "Please Wait"
+          : "Register a Passkey"}
+      </button>
+      {registrationSuccess && (
+        <p>
+          Successfully registered a passkey. You can now log in using only this
+          device!
+        </p>
+      )}
+      {registrationError && (
+        <p>Could not register your passkey, please try again.</p>
+      )}
+    </>
+  );
+}
+
 export default function Home() {
-  const hello = api.example.hello.useQuery({ text: "from tRPC" });
+  // TODO: add toasted for notifications
+  //
+  const { data: sessionData } = useSession();
 
   return (
     <>
@@ -44,11 +89,13 @@ export default function Home() {
             </Link>
           </div>
           <div className="flex flex-col items-center gap-2">
-            <p className="text-2xl text-white">
-              {hello.data ? hello.data.greeting : "Loading tRPC query..."}
-            </p>
             <AuthShowcase />
           </div>
+          {sessionData && (
+            <div className="border p-4 text-white">
+              <RegistrationComponent />
+            </div>
+          )}
         </div>
       </main>
     </>
@@ -60,7 +107,7 @@ function AuthShowcase() {
 
   const { data: secretMessage } = api.example.getSecretMessage.useQuery(
     undefined, // no input
-    { enabled: sessionData?.user !== undefined }
+    { enabled: sessionData?.user !== undefined },
   );
 
   return (
