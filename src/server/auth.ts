@@ -4,6 +4,7 @@ import {
   getServerSession,
   type DefaultSession,
   type NextAuthOptions,
+  type Session,
 } from "next-auth";
 import EmailProvider from "next-auth/providers/email";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -12,6 +13,7 @@ import { env } from "~/env.mjs";
 import { db } from "~/server/db";
 import { domain, getChallenge, rpID } from "~/lib/webauthn";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
+import { JWT } from "next-auth/jwt";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -40,15 +42,27 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authOptions: NextAuthOptions = {
-  // callbacks: {
-  //   session: ({ session, user }) => ({
-  //     ...session,
-  //     user: {
-  //       ...session.user,
-  //       id: user.id,
-  //     },
-  //   }),
-  // },
+  callbacks: {
+    session: ({ session, token }: { session: Session; token: JWT }) => {
+      if (token?.id && typeof token?.id === "string") {
+        session = {
+          ...session,
+          user: {
+            ...session.user,
+            id: token.id,
+          },
+        };
+      }
+      return session;
+    },
+    jwt: ({ token, user }) => {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+      }
+      return token;
+    },
+  },
   adapter: PrismaAdapter(db),
   secret: env.NEXTAUTH_SECRET,
   session: {

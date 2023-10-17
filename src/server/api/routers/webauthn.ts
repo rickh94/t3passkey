@@ -16,10 +16,27 @@ import {
 
 export const webauthnRouter = createTRPCRouter({
   handlePreRegister: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.session.user.id;
+    const email = ctx.session.user?.email;
+    if (!email) {
+      throw new TRPCError({
+        message: "User does not have associated email",
+        code: "BAD_REQUEST",
+      });
+    }
+    const user = await ctx.db.user.findUnique({
+      where: {
+        email,
+      },
+    });
+    if (!user) {
+      throw new TRPCError({
+        message: "User does not exist",
+        code: "BAD_REQUEST",
+      });
+    }
     const credentials = await ctx.db.credential.findMany({
       where: {
-        userId,
+        userId: user.id,
       },
     });
     if (!rpID) {
@@ -39,7 +56,7 @@ export const webauthnRouter = createTRPCRouter({
     const options = await generateRegistrationOptions({
       rpID,
       rpName: "T3 Passkeys",
-      userID: userId,
+      userID: user.id,
       userName: ctx.session.user.email,
       userDisplayName: ctx.session.user.name || ctx.session.user.email,
       attestationType: "none",
@@ -55,7 +72,7 @@ export const webauthnRouter = createTRPCRouter({
 
     try {
       await saveChallenge({
-        userID: userId,
+        userID: user.id,
         challenge: options.challenge,
       });
     } catch (err) {
@@ -108,9 +125,26 @@ export const webauthnRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session?.user.id;
+      const email = ctx.session.user?.email;
+      if (!email) {
+        throw new TRPCError({
+          message: "User does not have associated email",
+          code: "BAD_REQUEST",
+        });
+      }
+      const user = await ctx.db.user.findUnique({
+        where: {
+          email,
+        },
+      });
+      if (!user) {
+        throw new TRPCError({
+          message: "User does not exist",
+          code: "BAD_REQUEST",
+        });
+      }
 
-      const challenge = await getChallenge(userId);
+      const challenge = await getChallenge(user.id);
       if (!challenge) {
         throw new TRPCError({
           message: "Could not get challenge for user",
@@ -137,7 +171,7 @@ export const webauthnRouter = createTRPCRouter({
         data: {
           credentialID: input.id,
           credentialPublicKey: registrationInfo.credentialPublicKey as Buffer,
-          userId,
+          userId: user.id,
           counter: registrationInfo.counter,
           transports: JSON.stringify(transports),
         },
