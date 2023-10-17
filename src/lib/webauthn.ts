@@ -1,8 +1,13 @@
-import { env } from "~/env.mjs";
 import redis from "~/server/redis";
 
-export const rpID = env.NEXTAUTH_URL.replace("https://", "");
-export const domain = `https://${env.NEXTAUTH_URL.replace("https://", "")}`;
+if (!process.env.NEXTAUTH_URL && !process.env.VERCEL_URL) {
+  throw new Error("NEXTAUTH_URL is not set");
+}
+
+export const rpID =
+  process.env.VERCEL_URL || process.env.NEXTAUTH_URL?.replace("https://", "");
+
+export const domain = `https://${rpID}`;
 
 // TODO: maybe encrypt challenges
 export async function saveChallenge({
