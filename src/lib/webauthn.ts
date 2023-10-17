@@ -1,6 +1,8 @@
+import { env } from "~/env.mjs";
 import redis from "~/server/redis";
 
-import { db } from "~/server/db";
+export const rpID = env.NEXTAUTH_URL.replace("https://", "");
+export const domain = `https://${env.NEXTAUTH_URL.replace("https://", "")}`;
 
 // TODO: maybe encrypt challenges
 export async function saveChallenge({

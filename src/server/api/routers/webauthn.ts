@@ -6,7 +6,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import base64url from "base64url";
 import { z } from "zod";
-import { getChallenge, saveChallenge } from "~/lib/webauthn";
+import { domain, getChallenge, rpID, saveChallenge } from "~/lib/webauthn";
 
 import {
   createTRPCRouter,
@@ -22,8 +22,11 @@ export const webauthnRouter = createTRPCRouter({
         userId,
       },
     });
-    if (!process.env.NEXTAUTH_URL) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    if (!rpID) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Missing rpID",
+      });
     }
 
     if (!ctx.session.user.email) {
@@ -34,7 +37,7 @@ export const webauthnRouter = createTRPCRouter({
     }
 
     const options = await generateRegistrationOptions({
-      rpID: process.env.NEXTAUTH_URL.replace("https://", ""),
+      rpID,
       rpName: "T3 Passkeys",
       userID: userId,
       userName: ctx.session.user.email,
@@ -114,14 +117,11 @@ export const webauthnRouter = createTRPCRouter({
           code: "BAD_REQUEST",
         });
       }
-      if (!process.env.NEXTAUTH_URL) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      }
 
       const { verified, registrationInfo } = await verifyRegistrationResponse({
         response: input,
-        expectedRPID: process.env.NEXTAUTH_URL.replace("https://", ""),
-        expectedOrigin: process.env.NEXTAUTH_URL,
+        expectedRPID: rpID,
+        expectedOrigin: domain,
         expectedChallenge: challenge,
       });
 
@@ -165,15 +165,15 @@ export const webauthnRouter = createTRPCRouter({
         },
       });
 
-      if (!process.env.NEXTAUTH_URL) {
+      if (!rpID) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Set NEXTAUTH_URL",
+          message: "Missing rpID",
         });
       }
 
       const options = await generateAuthenticationOptions({
-        rpID: process.env.NEXTAUTH_URL.replace("https://", ""),
+        rpID,
         userVerification: "required",
         allowCredentials: credentials.map((c) => ({
           id: base64url.toBuffer(c.credentialID),

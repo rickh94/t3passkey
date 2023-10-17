@@ -10,7 +10,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 import { env } from "~/env.mjs";
 import { db } from "~/server/db";
-import { getChallenge } from "~/lib/webauthn";
+import { domain, getChallenge, rpID } from "~/lib/webauthn";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 
 /**
@@ -99,16 +99,13 @@ export const authOptions: NextAuthOptions = {
         if (!expectedChallenge) {
           return null;
         }
-        if (!process.env.NEXTAUTH_URL) {
-          throw new Error("NEXTAUTH_URL must be set");
-        }
         try {
           const { verified, authenticationInfo } =
             await verifyAuthenticationResponse({
               response,
               expectedChallenge,
-              expectedOrigin: process.env.NEXTAUTH_URL,
-              expectedRPID: process.env.NEXTAUTH_URL.replace("https://", ""),
+              expectedOrigin: domain,
+              expectedRPID: rpID,
               authenticator: {
                 credentialPublicKey:
                   authenticator.credentialPublicKey as Buffer,
