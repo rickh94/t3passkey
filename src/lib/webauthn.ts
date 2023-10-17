@@ -5,7 +5,7 @@ if (!process.env.NEXTAUTH_URL && !process.env.VERCEL_URL) {
 }
 
 export const rpID =
-  process.env.VERCEL_URL || process.env.NEXTAUTH_URL?.replace("https://", "");
+  process.env.NEXTAUTH_URL?.replace("https://", "") || process.env.VERCEL_URL;
 
 export const domain = `https://${rpID}`;
 
