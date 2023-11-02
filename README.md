@@ -1,28 +1,43 @@
-# Create T3 App
+# T3 App Template with passkeys
 
 This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+I’ve hacked on Passkey/FIDO2/WebAuthn authentication.
 
-## What's next? How do I make an app with this?
+## Passkeys + NextAuth
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+I’m using a Next Auth Credential provider to authenticate the passkey
+credentials. This depends on [simplewebauthn](https://simplewebauthn.dev/). It
+has the email provider as a fallback, but you could use something else.
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## JWT Sessions
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+NextAuth does not allow you to use Database sessions with the
+CredentialProvider, as far as I can tell. This is not well documented. It simply
+fails silently if you do. So I’ve added configuration to use a JWT session and
+get the user ID from the JWT.
 
-## Learn More
+## Turso
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+I’m using [Turso](https://turso.tech/). For the database, largely because of
+their extremely generous free tier, but you can just swap it out for whatever
+making the appropriate changes to the prisma configuration.
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+## Prisma + Page Router
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+This version uses Prisma and the page router with tRPC endpoints. Check the
+other branches to see the Drizzle + App Router version.
 
-## How do I deploy this?
+## Upstash
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+WebAuthn uses a challenge-response flow to prevent replay attacks, and meaning
+you need to save the challenge server-side to verify it. You should also expire
+them after a certain amount of time. I’m using [upstash](https://upstash.com/)
+redis for this, but any key-value store would work fine.
+
+## Devenv
+
+WebAuthn is annoying to develop against because usually it’s very strict about
+ssl. You can just [ngrok](https://ngrok.com/) it, but I’m using [devenv](https://devenv.sh/)
+with [nix](https://nixos.org) to configure [caddy](https://caddyserver.com) and
+[mkcert](https://github.com/FiloSottile/mkcert) to proxy the dev server with
+valid(-ish) certificates.
