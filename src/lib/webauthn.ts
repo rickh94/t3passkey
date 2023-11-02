@@ -19,7 +19,7 @@ export async function saveChallenge({
   challenge: string;
   userID: string;
 }) {
-  redis.set(`${userID}-challenge`, challenge, {
+  await redis.set(`${userID}-challenge`, challenge, {
     ex: 60 * 5,
   });
 }
@@ -29,6 +29,6 @@ export async function getChallenge(userID: string): Promise<string | null> {
   if (!challenge) {
     return null;
   }
-  redis.del(`${userID}-challenge`);
+  await redis.del(`${userID}-challenge`);
   return challenge;
 }

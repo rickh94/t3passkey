@@ -13,7 +13,7 @@ import { env } from "~/env.mjs";
 import { db } from "~/server/db";
 import { domain, getChallenge, rpID } from "~/lib/webauthn";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
-import { JWT } from "next-auth/jwt";
+import { type JWT } from "next-auth/jwt";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`

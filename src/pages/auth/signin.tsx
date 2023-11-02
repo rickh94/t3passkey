@@ -21,7 +21,7 @@ export default function SignInComponent() {
     if (status === "authenticated") {
       router.push("/");
     }
-  });
+  }, [status, router]);
 
   // sign in with email
   async function signInWithEmail() {
@@ -95,7 +95,12 @@ export default function SignInComponent() {
           className={`w-full rounded-full px-10 py-3 font-semibold text-white transition ${isValid ? "bg-white/20 shadow hover:bg-white/20" : "bg-slate-100/20"
             }`}
         >
-          Sign in
+          <span
+            className={`transition-all duration-200 ${isValid ? "" : "blur-sm filter"
+              }`}
+          >
+            Sign in
+          </span>
         </button>
       </form>
     </PageLayout>

@@ -1,6 +1,5 @@
 import { startRegistration } from "@simplewebauthn/browser";
 import { signIn, signOut, useSession } from "next-auth/react";
-import Head from "next/head";
 import Link from "next/link";
 import { PageLayout } from "~/components/layout";
 
@@ -32,12 +31,14 @@ function RegistrationComponent() {
     <>
       <div className="flex justify-center pt-4">
         <button
+          type="button"
           onClick={registerWebauthn}
           disabled={registrationOptionsLoading}
-          className={`rounded-full px-10 py-3 font-semibold text-white no-underline transition ${registrationOptionsLoading
+          className={`rounded-full px-10 py-3 font-semibold text-white no-underline transition ${
+            registrationOptionsLoading
               ? "bg-slate-500/10"
               : "bg-white/10 shadow hover:bg-white/20"
-            }`}
+          }`}
         >
           {registrationOptionsLoading || registrationLoading
             ? "Please Wait"
@@ -58,8 +59,6 @@ function RegistrationComponent() {
 }
 
 export default function Home() {
-  // TODO: add toasted for notifications
-  //
   const { data: sessionData } = useSession();
 
   return (
@@ -68,6 +67,9 @@ export default function Home() {
         <h1 className="text-5xl font-extrabold tracking-tight text-white sm:text-[5rem]">
           Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
         </h1>
+        <p className="text-4xl italic text-white">
+          Now with Passkey Authentication
+        </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
           <Link
             className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 text-white hover:bg-white/20"
@@ -122,6 +124,7 @@ function AuthShowcase() {
         {secretMessage && <span> - {secretMessage}</span>}
       </p>
       <button
+        type="button"
         className="rounded-full bg-white/10 px-10 py-3 font-semibold text-white no-underline transition hover:bg-white/20"
         onClick={sessionData ? () => void signOut() : () => void signIn()}
       >
