@@ -37,6 +37,10 @@ export const env = createEnv({
     EMAIL_FROM: z.string(),
     UPSTASH_REDIS_REST_URL: z.string().url().includes("upstash.io"),
     UPSTASH_REDIS_REST_TOKEN: z.string(),
+    // 64 character hex string (32 bytes)
+    ENCRYPTION_KEY: z.string().min(64).max(64),
+    // 32 character hex string (16 bytes)
+    ENCRYPTION_IV: z.string().min(32).max(32),
   },
 
   /**
@@ -65,6 +69,8 @@ export const env = createEnv({
     EMAIL_FROM: process.env.EMAIL_FROM,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+    ENCRYPTION_IV: process.env.ENCRYPTION_IV,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

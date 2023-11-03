@@ -27,6 +27,7 @@
     "@trpc/server": "^10.37.1",
     "@upstash/redis": "^1.24.3",
     "base64url": "^3.0.1",
+    "crypto-js": "^4.2.0",
     "drizzle-orm": "^0.28.5",
     "encoding": "^0.1.13",
     "next": "^13.5.4",
