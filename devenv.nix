@@ -1,7 +1,7 @@
 { pkgs, ... }:
 
 {
-  dotenv.enable = true;
+  dotenv.enable = false;
   # https://devenv.sh/basics/
   env.GREET = "devenv";
 

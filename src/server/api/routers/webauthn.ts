@@ -6,13 +6,15 @@ import {
 import { TRPCError } from "@trpc/server";
 import base64url from "base64url";
 import { z } from "zod";
-import { domain, getChallenge, rpID, saveChallenge } from "~/lib/webauthn";
+import { domain, getChallenge, rpID, saveChallenge } from "~/server/webauthn";
 
 import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
+import { credentials } from "~/server/db/schema";
+import { type AuthenticatorTransportFuture } from "@simplewebauthn/typescript-types";
 
 export const webauthnRouter = createTRPCRouter({
   handlePreRegister: protectedProcedure.query(async ({ ctx }) => {
@@ -23,10 +25,8 @@ export const webauthnRouter = createTRPCRouter({
         code: "BAD_REQUEST",
       });
     }
-    const user = await ctx.db.user.findUnique({
-      where: {
-        email,
-      },
+    const user = await ctx.db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.email, email),
     });
     if (!user) {
       throw new TRPCError({
@@ -34,10 +34,8 @@ export const webauthnRouter = createTRPCRouter({
         code: "BAD_REQUEST",
       });
     }
-    const credentials = await ctx.db.credential.findMany({
-      where: {
-        userId: user.id,
-      },
+    const credentials = await ctx.db.query.credentials.findMany({
+      where: (credentials, { eq }) => eq(credentials.userId, user.id),
     });
     if (!rpID) {
       throw new TRPCError({
@@ -58,7 +56,7 @@ export const webauthnRouter = createTRPCRouter({
       rpName: "T3 Passkeys",
       userID: user.id,
       userName: ctx.session.user.email,
-      userDisplayName: ctx.session.user.name || ctx.session.user.email,
+      userDisplayName: ctx.session.user.name ?? ctx.session.user.email,
       attestationType: "none",
       authenticatorSelection: {
         userVerification: "required",
@@ -67,7 +65,7 @@ export const webauthnRouter = createTRPCRouter({
     options.excludeCredentials = credentials.map((c) => ({
       id: c.credentialID,
       type: "public-key",
-      transports: JSON.parse(c.transports),
+      transports: c.transports as AuthenticatorTransportFuture[],
     }));
 
     try {
@@ -132,10 +130,8 @@ export const webauthnRouter = createTRPCRouter({
           code: "BAD_REQUEST",
         });
       }
-      const user = await ctx.db.user.findUnique({
-        where: {
-          email,
-        },
+      const user = await ctx.db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, email),
       });
       if (!user) {
         throw new TRPCError({
@@ -167,36 +163,30 @@ export const webauthnRouter = createTRPCRouter({
       }
 
       const transports = input.response.transports ?? ["internal"];
-      await ctx.db.credential.create({
-        data: {
-          credentialID: input.id,
-          credentialPublicKey: registrationInfo.credentialPublicKey as Buffer,
-          userId: user.id,
-          counter: registrationInfo.counter,
-          transports: JSON.stringify(transports),
-        },
+      await ctx.db.insert(credentials).values({
+        credentialID: input.id,
+        credentialPublicKey: registrationInfo.credentialPublicKey as Buffer,
+        userId: user.id,
+        counter: registrationInfo.counter,
+        transports: transports,
       });
     }),
 
   startAuthentication: publicProcedure
     .input(z.string().email())
     .query(async ({ ctx, input }) => {
-      const user = await ctx.db.user.findUnique({
-        where: {
-          email: input,
-        },
+      const user = await ctx.db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, input),
       });
 
-      if (!user || !user.email) {
+      if (!user?.email) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Invalid user",
         });
       }
-      const credentials = await ctx.db.credential.findMany({
-        where: {
-          userId: user.id,
-        },
+      const credentials = await ctx.db.query.credentials.findMany({
+        where: (credentials, { eq }) => eq(credentials.userId, user.id),
       });
 
       if (!rpID) {
@@ -212,7 +202,7 @@ export const webauthnRouter = createTRPCRouter({
         allowCredentials: credentials.map((c) => ({
           id: base64url.toBuffer(c.credentialID),
           type: "public-key",
-          transports: JSON.parse(c.transports),
+          transports: c.transports as AuthenticatorTransportFuture[],
         })),
       });
 
