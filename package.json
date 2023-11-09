@@ -26,6 +26,7 @@
     "@trpc/react-query": "^10.37.1",
     "@trpc/server": "^10.37.1",
     "@upstash/redis": "^1.24.3",
+    "@vercel/analytics": "^1.1.1",
     "base64url": "^3.0.1",
     "crypto-js": "^4.2.0",
     "drizzle-orm": "^0.28.5",
