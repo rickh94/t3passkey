@@ -41,6 +41,7 @@ export const env = createEnv({
     ENCRYPTION_KEY: z.string().min(64).max(64),
     // 32 character hex string (16 bytes)
     ENCRYPTION_IV: z.string().min(32).max(32),
+    SITE_URL: z.string().url(),
   },
 
   /**
@@ -71,6 +72,11 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
     ENCRYPTION_IV: process.env.ENCRYPTION_IV,
+    SITE_URL: `https://${
+      process.env.SITE_URL ??
+      process.env.NEXT_PUBLIC_VERCEL_URL ??
+      "t3passkeys.localhost"
+    }`,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
